@@ -1664,8 +1664,8 @@ static void __pm8921_charger_vbus_draw(unsigned int mA)
 		rc = pm_chg_usb_suspend_enable(the_chip, 0);
 		if (rc)
 			pr_err("fail to reset suspend bit rc=%d\n", rc);
-		for (i = ARRAY_SIZE(usb_ma_table) - 1; i >= 0; i--) {
-			if (usb_ma_table[i].usb_ma <= mA)
+		for (i = ARRAY_SIZE(usb_ma_table); i > 0; i--) {
+			if (usb_ma_table[i - 1].usb_ma <= mA)
 				break;
 		}
 
@@ -1675,7 +1675,38 @@ static void __pm8921_charger_vbus_draw(unsigned int mA)
 			i--;
 		if (i < 0)
 			i = 0;
+#ifdef CONFIG_FORCE_FAST_CHARGE
+		if (force_fast_charge == 1)
+			i = 14;
+		else if (force_fast_charge == 2) {
+			switch (fast_charge_level) {
+				case FAST_CHARGE_500:
+					i = 2;
+					break;
+				case FAST_CHARGE_700:
+					i = 4;
+					break;
+				case FAST_CHARGE_900:
+					i = 8;
+					break;
+				case FAST_CHARGE_1100:
+					i = 10;
+					break;
+				case FAST_CHARGE_1300:
+					i = 12;
+					break;
+				case FAST_CHARGE_1500:
+					i = 14;
+					break;
+				default:
+					break;
+			}
+		}
 		rc = pm_chg_iusbmax_set(the_chip, i);
+		pr_info("charge curent index => %d\n", i);
+#else
+		rc = pm_chg_iusbmax_set(the_chip, i);
+#endif
 		if (rc) {
 			pr_err("unable to set iusb to %d rc = %d\n", i, rc);
 		}
